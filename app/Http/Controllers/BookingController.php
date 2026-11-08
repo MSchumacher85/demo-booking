@@ -7,6 +7,8 @@ use App\Models\Booking;
 use App\Models\Room;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -49,9 +51,13 @@ class BookingController extends Controller
         return $booking;
     }
 
-    public function destroy($id)
+    public function destroy(string $id): Response
     {
-        Booking::findOrFail($id)->delete();
+        $booking = Booking::findOrFail($id);
+
+        Gate::authorize('delete', $booking);
+
+        $booking->delete();
 
         return response()->noContent();
     }
