@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class BookingDestroyTest extends TestCase
@@ -78,6 +79,36 @@ class BookingDestroyTest extends TestCase
 
         $this->assertModelExists($booking);
         $this->assertDatabaseCount('bookings', 1);
+    }
+
+    #[DataProvider('invalidBookingIds')]
+    public function test_returns_404_for_an_invalid_booking_id_without_deleting_bookings(string $id): void
+    {
+        $author = User::factory()->create();
+        $booking = Booking::factory()->for($author)->create();
+        Sanctum::actingAs($author);
+
+        $this->deleteJson('/api/bookings/'.rawurlencode($id))->assertNotFound();
+
+        $this->assertModelExists($booking);
+        $this->assertDatabaseCount('bookings', 1);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invalidBookingIds(): array
+    {
+        return [
+            'letters' => ['abc'],
+            'numeric prefix' => ['1abc'],
+            'fraction' => ['1.5'],
+            'scientific notation' => ['1e0'],
+            'zero' => ['0'],
+            'negative number' => ['-1'],
+            'bigint overflow' => ['9223372036854775808'],
+            'very large number' => ['999999999999999999999999999999'],
+        ];
     }
 
     public function test_cancelled_slot_can_be_booked_again_by_another_user(): void
